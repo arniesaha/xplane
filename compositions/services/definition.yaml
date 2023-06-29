@@ -1,0 +1,70 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xhosts.supercluster.glide.io  # must be spec.names.plural+"."+spec.group
+spec:
+  group: supercluster.glide.io
+  names:
+    kind: XHost        # cluster scope type
+    plural: xhosts    # lowercase only
+  claimNames:               # namespace scope type
+    kind: host
+    plural: hosts      # lowercase only
+
+  versions:
+    - name: v1alpha1
+      additionalPrinterColumns:
+      - jsonPath: .status.conditions[?(@.type=='Ready')].status
+        name: READY
+        type: string
+      - jsonPath: .status.conditions[?(@.type=='Synced')].status
+        name: SYNCED
+        type: string
+      - jsonPath: .metadata.creationTimestamp
+        name: AGE
+        type: date
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                parameters:
+                  description: Input parameters
+                  type: object
+                  properties:
+                    job-Name:
+                      description: Name of the Job
+                      type: string 
+                    loft-domain:
+                      description: Address of loft
+                      type: string   
+                    secretName:
+                      description: Secret of the supercluster
+                      type: string                     
+                  required:
+                    - job-Name
+                    - loft-domain
+                    - secretName
+                resourceConfig:
+                  description: ResourceConfig defines general properties of this AWS
+                    resource.
+                  type: object
+                  properties:
+
+                    providerConfigName:
+                      type: string
+                    clusterName:
+                      type: string
+
+                  required:
+                    - providerConfigName
+                    - clusterName
+              required:
+                - parameters
+                - resourceConfig
+          required:
+            - spec

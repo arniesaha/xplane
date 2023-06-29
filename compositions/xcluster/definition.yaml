@@ -1,0 +1,158 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xcls.supercluster.glide.io  # must be spec.names.plural+"."+spec.group
+spec:
+  connectionSecretKeys:
+    - kubeconfig
+    - cluster-ca
+    - apiserver-endpoint
+  group: supercluster.glide.io
+  names:
+    kind: XCls        # cluster scope type
+    plural: xcls    # lowercase only
+  claimNames:               # namespace scope type
+    kind: cls
+    plural: clss      # lowercase only
+  versions:
+    - name: v1alpha1
+      additionalPrinterColumns:
+      - jsonPath: .metadata.creationTimestamp
+        name: AGE
+        type: date
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                parameters:
+                  description: EKS Input parameters
+                  type: object                  
+                  properties:
+                    version:
+                      description: Kubernetes Version
+                      type: string
+                      enum: [ "1.21", "1.22", "1.23", "1.24", "1.25" ]
+                    endpointPrivateAccess:
+                      description: endpointPrivateAccess
+                      type: boolean
+                      default: false
+                    endpointPublicAccess:
+                      description: endpointPublicAccess
+                      type: boolean
+                      default: true
+                    subnetIds:
+                      description: EKS Cluster Subnet Id references. Unused in compositions that use label-based subnet lookup through the 'networkId' parameter
+                      items:
+                        type: string
+                      type: array
+                      default: []
+                    networkId:
+                      description: Name of network to use for label-based subnet lookup (subnet label 'network.glide.io/network-id'). Unused in compositions that use explicit subnet Id through the 'subnetIds' parameter
+                      type: string
+                      default: ""
+                    loft-domain:
+                      description: Address of loft
+                      type: string   
+                    secretName:
+                      description: Secret of the supercluster
+                      type: string
+                  required:
+                    - version
+                managedNodeGroups:
+                  description: Managed Node Groups properties
+                  type: object
+                  properties:
+                    minSize:
+                      type: integer
+                      description: Nodegroup Min Size.
+                    desiredSize:
+                      type: integer
+                      description: Nodegroup desiredSize.
+                      default: 3
+                    maxSize:
+                      type: integer
+                      description: Nodegroup maxSize.
+                      default: 10
+                    amiType:
+                      type: string
+                      description: AMI Type.
+                      enum:
+                        - AL2_x86_64_GPU
+                        - AL2_x86_64
+                        - AL2_ARM_64
+                        - BOTTLEROCKET_x86_64
+                        - BOTTLEROCKET_ARM_64
+                      default: AL2_x86_64
+                    capacityType:
+                      type: string
+                      description: Capacity Type.
+                      enum:
+                        - ON_DEMAND
+                        - SPOT
+                      default: ON_DEMAND
+                    instanceTypes:
+                      items:
+                        type: string
+                      type: array
+                      description: Instance Type.
+                      default:
+                       - m6a.large
+                  required:
+                    - minSize
+                resourceConfig:
+                  description: ResourceConfig defines general properties of this AWS
+                    resource.
+                  type: object
+                  properties:
+                    deletionPolicy:
+                      description: Defaults to Delete
+                      enum:
+                        - Delete
+                        - Orphan
+                      type: string
+                      name:
+                        description: Set the name of this resource in AWS to the value
+                          provided by this field.
+                        type: string
+                    providerConfigName:
+                      type: string
+                    k8sproviderConfigName:
+                      type: string
+                    region:
+                      type: string
+                    accountId:
+                      type: string
+                    tags:
+                      items:
+                        properties:
+                          key:
+                            type: string
+                          value:
+                            type: string
+                        required:
+                        - key
+                        - value
+                        type: object
+                      type: array
+                    objectTags:
+                      additionalProperties:
+                        type: string
+                      type: object
+
+                  required:
+                    - providerConfigName
+                    - region
+              required:
+                - parameters
+                - resourceConfig
+                - managedNodeGroups
+            status:
+              type: object
+              properties:
+                clusterName:
+                  type: string

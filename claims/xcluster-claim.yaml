@@ -1,0 +1,64 @@
+apiVersion: supercluster.glide.io/v1alpha1
+kind: cls
+metadata:
+  name: managed-cluster
+  namespace: default
+  labels:
+    "region" : "India"
+    "entity" : "India"
+    "status" : "INACTIVE"
+    "account" : "dedicated"
+    "k8s-version" : "1.25"
+    "cloud-provider" : "AWS"
+  annotations:
+    "region" : "India"
+    "entity" : "India"
+    "status" : "INACTIVE"
+    "account" : "dedicated"
+    "k8s-version" : ""
+    "cloud-provider" : "AWS"
+    loft.sh/agent-values: |-
+      serviceAccount:
+        imagePullSecrets: 
+          - name: atlanhq-dockerhub-registry
+      resources:
+        limits:
+          memory: '0'
+        requests:
+          memory: '0'
+spec:
+  resourceConfig:
+    deletionPolicy: Delete
+    providerConfigName: aws-provider-config
+    k8sproviderConfigName: kubernetes-provider
+    region: us-east-1
+    accountId: "766006612952"
+    tags:
+      - key: env
+        value: test
+      - key: anotherKey
+        value: anotherValue
+    objectTags:
+      key: env
+  parameters:
+    #EKS Input parameters
+    version: "1.25"
+    endpointPrivateAccess: false
+    endpointPublicAccess: true
+    subnetIds: # Update your private subnet ids
+      - "subnet-01c05976f60b23296"
+      - "subnet-078cd82b5ecbe2c2f"
+      - "subnet-0ef3ead1c4cff63f1"
+    loft-domain: glide-tenant.atlan.dev
+    secretName: xplane-glide-eks-cluster
+  managedNodeGroups:
+    minSize: 1
+    desiredSize: 1
+    maxSize: 2
+    capacityType: SPOT
+    instanceTypes:
+      - m6a.large
+      - m5a.large
+      - m5.large
+  writeConnectionSecretToRef:
+    name: xplane-glide-eks-cluster

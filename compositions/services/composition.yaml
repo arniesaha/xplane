@@ -1,0 +1,171 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: xhosts.supercluster.glide.io
+  labels:
+    glide.io/provider: k8s
+    glide.io/environment: dev
+    crossplane.io/xrd: xhosts.supercluster.glide.io
+spec:
+  writeConnectionSecretsToNamespace: crossplane-system
+  compositeTypeRef:
+    apiVersion: supercluster.glide.io/v1alpha1
+    kind: XHost
+  patchSets:
+    - name: common-parameters
+      patches:
+        - type: FromCompositeFieldPath
+          fromFieldPath: spec.resourceConfig.providerConfigName
+          toFieldPath: spec.providerConfigRef.name
+
+  resources:
+    - name: cluster-connection
+      base:
+        apiVersion: kubernetes.crossplane.io/v1alpha1
+        kind: Object
+        spec:
+          forProvider:
+            manifest:
+              apiVersion: batch/v1
+              kind: Job
+              metadata:
+                name: add-cluster-host
+                namespace: default
+              spec:
+                template:
+                  spec:
+                    containers:
+                    - name: create-admin-kubeconfig
+                      image: ghcr.io/atlanhq/mt-utils-atlan-v2:1.8.20
+                      env:
+                        - name: LOFT_DOMAIN
+                          value: glide-tenant.atlan.dev
+                        - name: SECRET_NAME
+                          value: #patch
+                        - name: ACCESS_KEY
+                          valueFrom:
+                            secretKeyRef:
+                              name: loft-access-key
+                              key: loft-access-key
+                      command:
+                      - /bin/sh
+                      - -c
+                      - |            
+                        echo "[+] Getting Supercluster kubeconfig"
+
+                        updated=0
+                        while [ $updated -eq 0 ]
+                        do
+                          kubectl --namespace default get secret $SECRET_NAME --output jsonpath="{.data.kubeconfig}" | base64 -d >supercluster.yaml
+
+                          if [ -s ./supercluster.yaml ]; then
+                              
+                              SUPER_CLUSTER_NAME="$(cat supercluster.yaml | grep name | cut -d ":" -f 2 | xargs | cut -d " " -f 1 | xargs)"
+                            
+                              loft login https://$LOFT_DOMAIN --access-key $ACCESS_KEY
+
+                              echo "[+] Updating kubeconfig to supercluster"
+                              export KUBECONFIG=./supercluster.yaml
+                              echo "[+] Getting Nodes"
+                              kubectl get nodes
+                              echo "[+] Generating loft admin-kube-config"
+                              loft generate admin-kube-config > kube.yaml 
+                              loft use cluster loft-cluster
+                              kubectl create secret generic $SUPER_CLUSTER_NAME-secret --from-file=kube.yaml -n loft --save-config --dry-run=client -o yaml | kubectl apply -f -
+                              updated=1
+                          else
+                              sleep 60
+                          fi
+                                        
+                        done
+                    restartPolicy: Never
+                    imagePullSecrets:
+                      - name: github-docker-registry
+      patches:
+        - type: PatchSet
+          patchSetName: common-parameters
+        - fromFieldPath: spec.parameters.job-Name
+          toFieldPath: spec.forProvider.manifest.metadata.name
+        - fromFieldPath: spec.parameters.loft-domain
+          toFieldPath: spec.forProvider.manifest.spec.template.spec.containers[0].env[0].value
+        - fromFieldPath: spec.parameters.secretName
+          toFieldPath: spec.forProvider.manifest.spec.template.spec.containers[0].env[1].value
+    - name: loft-user-binding
+      base: 
+        apiVersion: kubernetes.crossplane.io/v1alpha1
+        kind: Object
+        spec:
+          forProvider:
+            manifest:
+              apiVersion: rbac.authorization.k8s.io/v1
+              kind: ClusterRoleBinding
+              metadata:
+                name: loft-user-binding
+              subjects:
+                - kind: Group
+                  name: loft:admin:default
+                  apiGroup: rbac.authorization.k8s.io
+              roleRef:
+                kind: ClusterRole
+                name: cluster-admin
+                apiGroup: rbac.authorization.k8s.io
+      patches:
+        - type: PatchSet
+          patchSetName: common-parameters
+    - name: cluster-generate
+      base:
+        apiVersion: kubernetes.crossplane.io/v1alpha1
+        kind: Object
+        spec:
+          forProvider:
+            manifest:
+              apiVersion: storage.loft.sh/v1
+              kind: Cluster
+              metadata:
+                name: #patched
+              spec:
+                config:
+                  secretName: #patched
+                  secretNamespace: loft
+      patches:
+        - type: PatchSet
+          patchSetName: common-parameters
+        - fromFieldPath: spec.resourceConfig.clusterName
+          toFieldPath: spec.forProvider.manifest.metadata.name
+        - fromFieldPath: metadata.labels
+          toFieldPath: spec.forProvider.manifest.metadata.labels
+        - fromFieldPath: metadata.annotations
+          toFieldPath: spec.forProvider.manifest.metadata.annotations
+        - fromFieldPath: spec.resourceConfig.clusterName
+          toFieldPath: spec.forProvider.manifest.spec.config.secretName
+          transforms:
+            - type: string
+              string:
+                fmt: "%s-secret"
+    - name: cluster-provider
+      base:
+        apiVersion: kubernetes.crossplane.io/v1alpha1
+        kind: Object
+        spec:
+          forProvider:
+            manifest:
+              apiVersion: kubernetes.crossplane.io/v1alpha1
+              kind: ProviderConfig
+              metadata:
+                name: supercluster-kubernetes-provider
+              spec:
+                credentials:
+                  source: Secret
+                  secretRef:
+                    namespace: default
+                    name: #patched
+                    key: kubeconfig
+      patches:
+        - type: PatchSet
+          patchSetName: common-parameters
+        - fromFieldPath: spec.resourceConfig.clusterName
+          toFieldPath: spec.forProvider.manifest.metadata.name
+        - fromFieldPath: spec.parameters.secretName
+          toFieldPath: spec.forProvider.manifest.spec.credentials.secretRef.name
+
+
