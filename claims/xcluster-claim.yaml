@@ -9,7 +9,7 @@ spec:
     providerConfigName: aws-provider-config
     k8sproviderConfigName: kubernetes-provider
     region: us-east-1
-    accountId: "766006612952"
+    accountId: "xx"
     tags:
       - key: env
         value: test
@@ -23,10 +23,9 @@ spec:
     endpointPrivateAccess: false
     endpointPublicAccess: true
     subnetIds: # Update your private subnet ids
-      - "subnet-01c05976f60b23296"
-      - "subnet-078cd82b5ecbe2c2f"
-      - "subnet-0ef3ead1c4cff63f1"
-    loft-domain: glide-tenant.atlan.dev
+      - "subnet-xx"
+      - "subnet-xx"
+      - "subnet-xx"
     secretName: xplane-glide-eks-cluster
   managedNodeGroups:
     minSize: 1
