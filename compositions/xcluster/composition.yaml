@@ -75,15 +75,9 @@ spec:
           fromFieldPath: spec.resourceConfig.k8sproviderConfigName
           toFieldPath: spec.resourceConfig.providerConfigName
         - fromFieldPath: status.clusterName
-          toFieldPath: spec.parameters.job-Name
-          policy:
-            fromFieldPath: Required
-        - fromFieldPath: status.clusterName
           toFieldPath: spec.resourceConfig.clusterName
           policy:
             fromFieldPath: Required
-        - fromFieldPath: spec.parameters.loft-domain
-          toFieldPath: spec.parameters.loft-domain
         - fromFieldPath: spec.parameters.secretName
           toFieldPath: spec.parameters.secretName
         - fromFieldPath: metadata.labels

@@ -36,30 +36,20 @@ spec:
                   description: Input parameters
                   type: object
                   properties:
-                    job-Name:
-                      description: Name of the Job
-                      type: string 
-                    loft-domain:
-                      description: Address of loft
-                      type: string   
                     secretName:
                       description: Secret of the supercluster
                       type: string                     
                   required:
-                    - job-Name
-                    - loft-domain
                     - secretName
                 resourceConfig:
                   description: ResourceConfig defines general properties of this AWS
                     resource.
                   type: object
                   properties:
-
                     providerConfigName:
                       type: string
                     clusterName:
                       type: string
-
                   required:
                     - providerConfigName
                     - clusterName

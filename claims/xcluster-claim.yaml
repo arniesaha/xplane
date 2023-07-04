@@ -3,29 +3,6 @@ kind: cls
 metadata:
   name: managed-cluster
   namespace: default
-  labels:
-    "region" : "India"
-    "entity" : "India"
-    "status" : "INACTIVE"
-    "account" : "dedicated"
-    "k8s-version" : "1.25"
-    "cloud-provider" : "AWS"
-  annotations:
-    "region" : "India"
-    "entity" : "India"
-    "status" : "INACTIVE"
-    "account" : "dedicated"
-    "k8s-version" : ""
-    "cloud-provider" : "AWS"
-    loft.sh/agent-values: |-
-      serviceAccount:
-        imagePullSecrets: 
-          - name: atlanhq-dockerhub-registry
-      resources:
-        limits:
-          memory: '0'
-        requests:
-          memory: '0'
 spec:
   resourceConfig:
     deletionPolicy: Delete
@@ -61,4 +38,4 @@ spec:
       - m5a.large
       - m5.large
   writeConnectionSecretToRef:
-    name: xplane-glide-eks-cluster
+    name: xplane-eks-cluster
